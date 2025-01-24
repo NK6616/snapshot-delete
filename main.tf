@@ -27,13 +27,17 @@ resource "aws_ebs_snapshot" "snapshots" {
   ]))
   
   volume_id = each.value
+
   tags = {
     "${var.filter_tag_key}" = var.filter_tag_value
+    "Name"                  = "Snapshot-${each.value}" # Adds the volume ID to the Name tag
   }
+
   timeouts {
     create = var.timeoutssettings
   }
 }
+
 
 resource "null_resource" "delete_old_snapshots" {
   provisioner "local-exec" {
