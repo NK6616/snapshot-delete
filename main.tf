@@ -20,12 +20,21 @@ EOT
 
 # Read filtered instance IDs into Terraform
 data "external" "filtered_instance_ids" {
-  program = ["bash", "-c", "cat filtered_instance_ids.txt | tr '\\n' ','"]
+  program = ["bash", "-c", <<EOT
+#!/bin/bash
+if [ -f filtered_instance_ids.txt ]; then
+  ids=$(cat filtered_instance_ids.txt | tr '\\n' ',' | sed 's/,$//')
+  echo "{\"result\": \"$ids\"}"
+else
+  echo "{\"result\": \"\"}"
+fi
+EOT
+  ]
 }
 
 # Get instance details for filtered instance IDs
 data "aws_instance" "filtered_instances" {
-  for_each   = toset(split(",", chomp(data.external.filtered_instance_ids.result)))
+  for_each   = toset(split(",", jsondecode(data.external.filtered_instance_ids.result).result))
   instance_id = each.key
 }
 
@@ -69,7 +78,7 @@ EOF
 
 # Outputs
 output "instance_ids" {
-  value = split(",", chomp(data.external.filtered_instance_ids.result))
+  value = split(",", jsondecode(data.external.filtered_instance_ids.result).result)
 }
 
 output "volume_ids" {
